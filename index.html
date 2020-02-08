@@ -1,1 +1,416 @@
-Helloworld
+<!DOCTYPE html>
+<html>
+    <head>
+       <script src='scripts/enemys.js'></script>
+       <script src='scripts/shots.js'></script>
+       <script src='scripts/explosions.js'></script>
+       <style>
+			@font-face {
+			  font-family: myFirstFont;
+			  src: url(fonts/starjedi/Starjedi.ttf);
+			}
+       </style>
+       <title>Skiing Biathlon(The Game)</title>
+	   <script>
+	   
+			//canvas variables
+			var canvas, ctx, timing;
+			
+			//background image
+			var bkgrnd=new Image();
+           		bkgrnd.src="images/slope.jpg";
+            
+			//enemy image
+			var en=new Image();
+			en.src='images/enemys.png';
+			
+			//enemy array
+			var enemys;
+			var enemyRate;
+			var enMaxSpeed;
+			
+			//game mechanics
+			var level;
+			var health;
+			var score;
+			
+			//health image
+			var healthImg=new Image();
+            healthImg.src='images/health.png';
+            var healthW, healthH, currFrame;
+			
+			//player variables
+			var player=new Image();
+            player.src='images/player1.png'; 
+            var playerX, playerY;
+            var playerS;
+            
+            //regular shot variables
+            var shotImg=new Image();
+            shotImg.src='images/shot.png'; 
+            var shotArr;
+            
+            //explosion variables
+            var explosion=new Image();
+            explosion.src='images/explosion.png'; 
+            var expArr, expTiming, expFrameW, expFrameH;
+            
+            //keyboard variables (controls)
+			var leftKey, rightKey, spaceBar, prevSpace, xKey;
+			
+			//sound and music variables
+			var hit, theme;
+			var l1Music, l2Music, l3Music, l4Music;
+
+			//scrolling text
+			var textY;
+			
+			//initialize function
+			function initialize(){
+				
+				//establish canvas
+				canvas=document.getElementById('game');
+				ctx=canvas.getContext("2d");
+				
+				//set timing
+				timing=0;
+				
+				//set enemy variables
+				enemyRate=80;
+				enemys=new Array();
+				enMaxSpeed=1;
+				
+				//set player variables
+				playerX=0;
+                playerY=(canvas.height-(player.height/8));
+                playerS=5;
+                
+                //sound variables from audio tags
+                hit=document.getElementById('bomb');
+                theme=document.getElementById('theme');
+                l1Music=document.getElementById('lvl1');
+                l2Music=document.getElementById('lvl2');
+                l3Music=document.getElementById('lvl3');
+                l4Music=document.getElementById('lvl4');
+                
+				//set game mechanics
+				level=1;
+				health=5;
+				score=0;
+				
+				//health image variables
+				healthW=111;
+				healthH=21;
+				
+				//shot array
+				shotArr=new Array();
+				
+				//explosion variables
+				expArr=new Array();
+				expTiming=0;
+				expFrameW=32;
+				expFrameH=34;
+				
+				//set the scrolling text at the bottom of the screen
+				textY=canvas.height
+				
+				//keyboard controls
+                leftKey=false;
+                rightKey=false;
+                spaceBar=false;
+                xKey=false;
+                prevSpace=spaceBar;
+                
+                document.addEventListener("keydown", keyDownHandler);
+                document.addEventListener("keyup", keyUpHandler);
+				
+				update();
+			}
+			
+			//update function
+			function update(){
+				
+				//update timing 60 tps
+				timing++;
+				
+				//make text scroll up
+				textY-=.5;
+				
+				//Press X to skip text scroll
+				if(xKey && timing<1560) timing = 1560;
+				
+				//Game Code, Text is done Scrolling
+				if(timing>1560){
+					
+					//if score increases by 2000, move to next level
+					if(score%2000==0&&score!=0&&health!=0){
+						enemyRate-=10; //more enemies appear
+						enMaxSpeed+=.5; //enemies can move faster
+						level++; //increase level
+						playerS+=2; //increase player movement speed
+						score+=100; //increase score by 100pts
+					}
+					
+					//Change the background image for each level
+					switch(level){
+						case 1:	bkgrnd.src='images/slope.jpg'; theme.src='x.mp3'; break;
+						
+					}
+					
+					//minimum enemy rate: 3 every second
+					if(enemyRate<20) enemyRate=20;
+					
+					//create an enemy at enemy rate
+					if(timing%enemyRate==0) enemys.push(new enemy(Math.random()*canvas.width-en.width, 0, en, parseInt(Math.random()*enMaxSpeed)+1));
+					
+					//update all of the enemy positions
+					for(var x=0; x<enemys.length; x++)
+					{
+						//call the enemy obect's update function
+						enemys[x].update();
+						
+						//if enemy off screen, delete from array
+						if(enemys[x].y>canvas.height){ 
+							health--; 
+							healthW-=22.2;
+							enemys.splice(x, 1); 
+						}
+					}
+					
+					//when the right arrow is pressed, move right
+					if(rightKey && playerX<canvas.width-(player.width/8)){ playerX+=playerS; player.src='images/playerR.png'; }
+	                
+	                //when the left arrow is pressed, move left
+	                else if(leftKey && playerX>=0 ){ playerX-=playerS; player.src='images/playerL.png'; }
+	                
+	                //if the player is not moving, use idle sprite
+	                else player.src='images/player1.png';
+	                
+	                //if spacebar is pressed, shoot
+	                if(spaceBar&&prevSpace!=spaceBar) shotArr.push(new shot(playerX+(player.width/16)-10, playerY-(player.height/16), shotImg));
+					
+					//update all of the shots positions
+					for(var y=0; y<shotArr.length; y++)
+					{
+						//call the shot object's update function
+						shotArr[y].update();
+						
+						//if shot is off screen, delete from array 
+						if(shotArr[y].y<0) shotArr.splice(y, 1);
+					}
+					
+					//check all shots against all enemies for a collision
+					for(var z=0; z<shotArr.length; z++)
+					{
+						var collision=false; // assume there is not a collision
+						for(var a=0; a<enemys.length; a++)
+						{
+							//if the shot box overlaps with the enemy box there is a collision
+							if(shotArr[z].y+shotImg.height>=enemys[a].y
+							&&shotArr[z].y<=enemys[a].y+en.height
+							&&shotArr[z].x+shotImg.width>=enemys[a].x
+							&&shotArr[z].x<=enemys[a].x+en.width)
+							{
+								expArr.push(new expObj(enemys[a].x, enemys[a].y, explosion, timing)); //create an explosion
+								enemys.splice(a, 1); //destroy the enemy
+								collision=true; //there was a collision
+								score+=100; //increase score
+								break;
+							}
+						}
+						
+						if(collision){
+							shotArr.splice(z, 1); //destroy the shot
+							//hit.play(); //play an explosion noise
+						}
+					}
+				
+					//reset space bar so holding is impossible
+					prevSpace=spaceBar;
+					
+					//after an explosion, delete the explosion and stop the hit sound
+					for(var b=0; b<expArr.length; b++) 
+						if(timing-expArr[b].time>10){ 
+							expArr.splice(b, 1);
+							//hit.pause();
+						}
+					
+				}
+				
+				draw();
+				requestAnimationFrame(update);
+			}
+			
+			//draw function
+			function draw(){
+				
+				//clear the canvas and then draw the background
+				ctx.clearRect(0,0,canvas.width, canvas.height);
+				ctx.drawImage(bkgrnd,0,0,550,347);
+				
+				//if text is scrolling, play the main theme
+				if(timing<1560) theme.play();
+				
+				//During the game intro, make a text scroll
+				if(timing<1380&&textY+660>0){
+					
+					//establish font and text style
+					ctx.fillStyle='yellow';
+					ctx.strokeStyle='black';
+					ctx.font = "25px myFirstFont";
+					
+					//line 1 of text
+					ctx.fillText("Welcome to Skiing Biathlon", 40, textY);
+					ctx.strokeText("Welcome to Skiing Biathlon", 40, textY);
+					
+					//line 2 of text
+					ctx.fillText("this is a very uncommon sport", 40, textY+30);
+					ctx.strokeText("this is a very uncommon sport", 40, textY+30);
+					
+					//line 3 of text
+					ctx.fillText("it is played by shooting targets", 40, textY+60);
+					ctx.strokeText("it is played by shooting targets", 40, textY+60);
+					
+					//line 4 of text
+					ctx.fillText("while skiing down a slope.", 40, textY+90);
+					ctx.strokeText("while skiing down a slope.", 40, textY+90);
+					
+					//line 5 of text
+					ctx.fillText("it was made with Canvas HTML", 40, textY+120);
+					ctx.strokeText("it was made with Canvas HTML", 40, textY+120);
+					
+					//line 6 of text
+					ctx.fillText("and Javascript. You must", 40, textY+150);
+					ctx.strokeText("and Javascript. You must", 40, textY+150);
+					
+					//line 7 of text
+					ctx.fillText("shoot the targets by using", 40, textY+180);
+					ctx.strokeText("shoot the targets by using", 40, textY+180);
+					
+					//line 8 of text(REMOVED)
+					ctx.fillText("the left and right", 40, textY+210);
+					ctx.strokeText("the left and right", 40, textY+210);
+					
+					//line 9 of text
+					ctx.fillText("arrow keys to move the skier", 40, textY+240);
+					ctx.strokeText("arrow keys to move the skier", 40, textY+240);
+					
+					//line 10 of text
+					ctx.fillText("and the space bar to shoot.", 40, textY+270);
+					ctx.strokeText("and the space bar to shoot.", 40, textY+270);
+					
+					//line 11 of text
+					ctx.fillText("You have 5 lives, indicated", 40, textY+300);
+					ctx.strokeText("You have 5 lives, indicated", 40, textY+300);
+					
+					//line 12 of text
+					ctx.fillText("by the targets at the top of the", 40, textY+330);
+					ctx.strokeText("by the targets at the top of the", 40, textY+330);
+					
+					//line 13 of text
+					ctx.fillText("screen. each level will get", 40, textY+360);
+					ctx.strokeText("screen. each level will get", 40, textY+360);
+					
+					//line 14 of text
+					ctx.fillText("harder as you progress.", 40, textY+390);
+					ctx.strokeText("harder as you progress.", 40, textY+390);
+					
+					//line 15 of text
+					ctx.fillText("good luck, have fun, enjoy", 40, textY+420);
+					ctx.strokeText("good luck, have fun, enjoy", 40, textY+420);
+					
+					//line 16 of text
+					
+					
+					//flashing line so players can skip by pressing x
+					if(textY+450<canvas.height-30 && timing%30>=0 && timing%30<=15){
+						ctx.font = "20px myFirstFont";
+						ctx.fillText("Press x to skip", 175, 330);
+						ctx.strokeText("Press x to skip", 175, 330);
+					}
+				}
+				
+				//play different background music for each level
+				if(level==1&&timing>1560) l1Music.play();
+				else if(level==2) {l1Music.pause(); l2Music.play();}
+				else if(level==3) {l2Music.pause(); l3Music.play();}
+				else if(level==4) {l3Music.pause(); l4Music.play();}
+				
+				//draw the actual game after the intro
+				if(timing>1380)
+				{
+					//draw all created enemies
+					for(var x=0; x<enemys.length; x++) enemys[x].draw(ctx);
+					
+					//draw all created shots
+					for(var y=0; y<shotArr.length; y++) shotArr[y].draw(ctx);
+					
+					//draw all created explosions
+					for(var z=0; z<expArr.length; z++) 
+						if(timing-expArr[z].time>5)
+							expArr[z].draw(ctx, 32, 34, 1);
+						else
+							expArr[z].draw(ctx, 32, 34, 0);
+					
+					//draw the player
+					ctx.drawImage(player, playerX, playerY, player.width/8, player.height/8);
+					
+					//draw the game mechanics in the top right corner
+					ctx.fillStyle='black';
+					ctx.font = "15px myFirstFont";
+					ctx.drawImage(healthImg, 0, 0, healthW, healthH, 10, 5, healthW, 21);
+					ctx.fillText(score, canvas.width-60, 25);
+
+					//if health runs out, display the GAME OVER screen
+					if(health<=0){
+						ctx.clearRect(0,0,canvas.width, canvas.height);
+						ctx.drawImage(bkgrnd,0,0,550,347);
+						
+						if(level>=4){ ctx.fillStyle='black'; ctx.strokeStyle='yellow'; }
+						else{ ctx.fillStyle='yellow'; ctx.strokeStyle='black'; }
+						ctx.font = "70px myFirstFont";
+						ctx.fillText("game over", 45, 170);
+						ctx.strokeText("game over", 45, 170);
+						ctx.font = "20px myFirstFont";
+						ctx.fillText("Your Score: "+score, 190, 200);
+						ctx.strokeText("Your Score: "+score, 190, 200);
+						ctx.font = "20px arial";
+						ctx.fillText("LEVEL: "+(score/1000)+1, 210, 240);
+						ctx.strokeText("LEVEL: "+(score/1000)+1, 210, 240);
+					}
+				}
+			}
+			
+			//key pressed functions
+	        function keyDownHandler(e){
+                switch(e.keyCode){
+                	case 32: spaceBar=true;break;
+                    case 37: leftKey=true;break;
+                    case 39: rightKey=true;break;
+                    case 88: xKey=true;break;
+                }
+            }
+            function keyUpHandler(e){
+                switch(e.keyCode){
+                	case 32: spaceBar=false;break;
+                    case 37: leftKey=false;break;
+                    case 39: rightKey=false;break;
+                    case 88: xKey=false;break;
+                }
+            }
+            
+	   </script>
+    </head>
+    <body onload='initialize()'>
+    	<div style='background-image:url("images/bodybg.jpg"); background-repeat:no-repeat; margin-left:250px; display:inline-block; width:1026px; height:640px;'>
+	       <canvas id='game' width='550px' height='347px' style='margin-left:130px; margin-top:210px; border-radius:5px'></canvas>
+        </div>
+        <audio src='sounds/bombSound.mp3' id='bomb' preload='auto' controls='none' style='display:none'></audio>
+        <audio src='sounds/theme.mp3' id='theme' preload='auto' controls='none' style='display:none'></audio>
+        
+        <audio src='sounds/l1bm.mp3' id='lvl1' preload='auto' controls='none' style='display:none'></audio>
+        <audio src='sounds/l2bm.mp3' id='lvl2' preload='auto' controls='none' style='display:none'></audio>
+        <audio src='sounds/l3bm.mp3' id='lvl3' preload='auto' controls='none' style='display:none'></audio>
+        <audio src='sounds/l4bm.mp3' id='lvl4' preload='auto' controls='none' style='display:none'></audio>
+    </body>
+</html>
