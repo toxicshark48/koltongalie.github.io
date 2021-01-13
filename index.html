@@ -263,9 +263,10 @@
 			//draw function
 			function draw(){
 				if(startScene==true){
+					ctx.clearRect(0,0,canvas.width, canvas.height);
+					ctx.drawImage(bkgrnd,0,0,550,347);
 					if(startSelection==1){
-						ctx.clearRect(0,0,canvas.width, canvas.height);
-						ctx.drawImage(bkgrnd,0,0,550,347);
+						
 					}
 				}else{
 					//clear the canvas and then draw the background
