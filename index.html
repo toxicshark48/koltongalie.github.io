@@ -132,11 +132,9 @@
 			function update(){
 					//update timing 60 tps
 				if(startScene){
-					switch(level){
-							case 1:	bkgrnd.src='images/slope.jpg'; theme.src='x.mp3'; break;
-
-						}
+					bkgrnd.src='images/slope.jpg'
 					ctx.drawImage(bkgrnd,0,0,550,347);
+					draw();
 				}
 				if(!(startScene)){
 					timing++;
