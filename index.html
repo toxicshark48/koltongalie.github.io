@@ -133,7 +133,18 @@
 			//update function
 			function update(){
 				if(startScene==true){
-				
+					if(upKey){
+						startSelection++;
+						if(startSelection>=3){
+							startSelection=1;
+						}
+					}
+					if(downKey){
+						startSelection--;
+						if(startSelection<=0){
+							startSelection=2;
+						}
+					}
 					draw();
 					requestAnimationFrame(update);
 				}else{
