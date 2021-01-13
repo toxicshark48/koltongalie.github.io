@@ -123,7 +123,7 @@
                 prevSpace=spaceBar;
                 
 		var startScene=true;
-				
+		var startSelection=1;
                 document.addEventListener("keydown", keyDownHandler);
                 document.addEventListener("keyup", keyUpHandler);
 				
@@ -133,7 +133,9 @@
 			//update function
 			function update(){
 				if(startScene==true){
-					
+				
+					draw();
+					requestAnimationFrame(update);
 				}else{
 					alert("Hello");
 					//update timing 60 tps
@@ -250,7 +252,10 @@
 			//draw function
 			function draw(){
 				if(startScene==true){
-					
+					if(startSelection==1){
+						ctx.clearRect(0,0,canvas.width, canvas.height);
+						ctx.drawImage(bkgrnd,0,0,550,347);
+					}
 				}else{
 					//clear the canvas and then draw the background
 					ctx.clearRect(0,0,canvas.width, canvas.height);
@@ -395,7 +400,7 @@
 			//key pressed functions
 	        function keyDownHandler(e){
                 switch(e.keyCode){
-                	case 32: spaceBar=true;break;
+			case 32: spaceBar=true;break;
                     case 37: leftKey=true;break;
                     case 39: rightKey=true;break;
                     case 88: xKey=true;break;
